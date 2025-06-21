@@ -270,6 +270,7 @@
         <div class="toggle-controls">
             <button id="toggleTriangleNames" class="toggle-btn off">Triangle Names: OFF</button>
             <button id="toggleTrigFunctions" class="toggle-btn off">Trig Functions: OFF</button>
+              <button id="explainScaleBtn" class="toggle-btn off">Explain Scale: OFF</button>
             <button id="resetBtn" class="toggle-btn reset-btn">🔄 Reset All</button>
         </div>
         
@@ -290,6 +291,7 @@
             🎵 <strong>Some Old Hippie Caught Another Hippie Tripping On Acid</strong> 🎵<br>
             <small>The classic way to remember: SOH CAH TOA</small>
         </div>
+        <div id='scaleInfo' class='explanation' style='display:none;'>This is a unit circle with radius 1. Each tick mark shows part of that radius. Opposite, Adjacent, and Hypotenuse form a right triangle. The circle's area is π.</div>
     </div>
 
     <script>
@@ -303,6 +305,8 @@
         const toggleTriangleNamesBtn = document.getElementById('toggleTriangleNames');
         const toggleTrigFunctionsBtn = document.getElementById('toggleTrigFunctions');
         const resetBtn = document.getElementById('resetBtn');
+        const explainScaleBtn = document.getElementById("explainScaleBtn");
+        const scaleInfo = document.getElementById("scaleInfo");
         
         const ratio = window.devicePixelRatio || 1;
         canvas.width = 800 * ratio;
@@ -318,6 +322,7 @@
         
         let showTriangleNames = false;
         let showTrigFunctions = false;
+        let showScaleInfo = false;
         
         let centerX = 400;
         let centerY = 300; 
@@ -360,6 +365,7 @@
             animating = true;
             showTriangleNames = false;
             showTrigFunctions = false;
+            showScaleInfo = false;
             
             angleSlider.value = 0;
             
@@ -367,6 +373,8 @@
             document.getElementById('step1').classList.add('active');
             
             updateToggleButton(toggleTriangleNamesBtn, false, 'Triangle Names');
+            updateToggleButton(explainScaleBtn, false, "Explain Scale");
+            scaleInfo.style.display = "none";
             updateToggleButton(toggleTrigFunctionsBtn, false, 'Trig Functions');
             
             updateAngleDisplay();
@@ -508,7 +516,6 @@
             ctx.textAlign = 'center';
             ctx.strokeStyle = 'white';
             ctx.lineWidth = 3;
-            ctx.strokeText('Unit Circle', centerX, centerY - radius - 30);
             ctx.fillText('Unit Circle', centerX, centerY - radius - 30);
             
             ctx.font = 'bold 16px Arial';
@@ -770,21 +777,24 @@
         
         function drawAngleArc() {
             if (currentStep < 4) return;
-            ctx.strokeStyle = '#27ae60';
+            const arcRadius = radius * 0.25;
+            ctx.strokeStyle = "#27ae60";
             ctx.lineWidth = 3;
+            ctx.setLineDash([4,2]);
             ctx.beginPath();
-            ctx.arc(centerX, centerY, 40, 0, -angle, true);
+            ctx.arc(centerX, centerY, arcRadius, 0, -angle, true);
             ctx.stroke();
-            ctx.fillStyle = '#27ae60';
-            ctx.font = 'bold 18px Arial';
-            ctx.textAlign = 'center';
-            ctx.strokeStyle = 'white';
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#27ae60";
+            ctx.font = "bold 18px Arial";
+            ctx.textAlign = "center";
+            ctx.strokeStyle = "white";
             ctx.lineWidth = 2;
-            const angleLabelDistance = 55;
+            const angleLabelDistance = arcRadius + 15;
             const angleLabelX = centerX + angleLabelDistance * Math.cos(-angle / 2);
             const angleLabelY = centerY + angleLabelDistance * Math.sin(-angle / 2);
-            ctx.strokeText('θ', angleLabelX, angleLabelY);
-            ctx.fillText('θ', angleLabelX, angleLabelY);
+            ctx.strokeText("θ", angleLabelX, angleLabelY);
+            ctx.fillText("θ", angleLabelX, angleLabelY);
         }
         
         function drawSOHCAHTOA(point) {
@@ -895,9 +905,14 @@
             });
         }
         
-        toggleTriangleNamesBtn.addEventListener('click', function() {
+        toggleTriangleNamesBtn.addEventListener("click", function() {
             showTriangleNames = !showTriangleNames;
-            updateToggleButton(this, showTriangleNames, 'Triangle Names');
+            updateToggleButton(this, showTriangleNames, "Triangle Names");
+        });
+        explainScaleBtn.addEventListener("click", function() {
+            showScaleInfo = !showScaleInfo;
+            updateToggleButton(this, showScaleInfo, "Explain Scale");
+            scaleInfo.style.display = showScaleInfo ? "block" : "none";
         });
         
         toggleTrigFunctionsBtn.addEventListener('click', function() {
@@ -912,6 +927,8 @@
         updatePlayPauseButton();
         updateToggleButton(toggleTriangleNamesBtn, false, 'Triangle Names');
         updateToggleButton(toggleTrigFunctionsBtn, false, 'Trig Functions');
+        updateToggleButton(explainScaleBtn, false, "Explain Scale");
+        scaleInfo.style.display = "none";
         
         animate();
     </script>
