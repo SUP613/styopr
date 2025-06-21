@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building SOH CAH TOA from a Rotating Point</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        canvas {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            border: 2px solid #34495e;
+            border-radius: 15px;
+            background: white;
+            display: block;
+            margin: 0 auto 30px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        /* Step buttons start gray and only color when active */
+        .step-btn {
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #bdc3c7;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .step-btn:hover,
+        .step-btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .step-btn.step1.active { background: linear-gradient(45deg, #3498db, #2980b9); }
+        .step-btn.step2.active { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .step-btn.step3.active { background: linear-gradient(45deg, #f39c12, #d68910); }
+        .step-btn.step4.active { background: linear-gradient(45deg, #27ae60, #229954); }
+        .step-btn.step5.active { background: linear-gradient(45deg, #9b59b6, #8e44ad); }
+        .step-btn.step6.active { background: linear-gradient(45deg, #e67e22, #d35400); }
+        .step-btn.step7.active { background: linear-gradient(45deg, #8e44ad, #9b59b6); }
+        
+        .toggle-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .toggle-btn {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        .toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .toggle-btn.off {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .toggle-btn.on {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+        }
+        
+        .toggle-btn::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            right: 3px;
+            bottom: 3px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .toggle-btn.on::before {
+            opacity: 1;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .reset-btn:hover {
+            background: linear-gradient(45deg, #c0392b, #a93226);
+        }
+        
+        .explanation {
+            background: rgba(52, 73, 94, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .explanation h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.4em;
+        }
+        
+        .math-formula {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            border: 2px solid #bdc3c7;
+        }
+        
+        .sin-color { color: #e74c3c; }
+        .cos-color { color: #3498db; }
+        .tan-color { color: #f39c12; }
+        .hyp-color { color: #2c3e50; }
+        
+        .memory-device {
+            background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+            border: 3px solid #f39c12;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .slider {
+            width: 300px;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .angle-display {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #27ae60;
+            min-width: 120px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            canvas {
+                height: 400px;
+            }
+            
+            .step-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .slider {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔺 Building SOH CAH TOA</h1>
+        <p class="subtitle">Watch how a simple rotating point creates the foundation of all trigonometry!</p>
+        
+        <canvas id="canvas"></canvas>
+        
+        <div class="controls">
+            <button id="step1" class="step-btn step1 active">1. Rotating Point</button>
+            <button id="step2" class="step-btn step2">2. Graph Point</button>
+            <button id="step3" class="step-btn step3">3. Draw Triangle</button>
+            <button id="step4" class="step-btn step4">4. Label Sides</button>
+            <button id="step5" class="step-btn step5">5. SOH CAH TOA</button>
+            <button id="step6" class="step-btn step6">6. Pythagorean</button>
+            <button id="step7" class="step-btn step7">7. All Together</button>
+        </div>
+        
+        <div class="toggle-controls">
+            <button id="toggleTriangleNames" class="toggle-btn off">Triangle Names: OFF</button>
+            <button id="toggleTrigFunctions" class="toggle-btn off">Trig Functions: OFF</button>
+            <button id="resetBtn" class="toggle-btn reset-btn">🔄 Reset All</button>
+        </div>
+        
+        <div class="slider-container">
+            <button id="playPause" style="padding: 10px 15px; margin-right: 15px; border: none; border-radius: 8px; background: #27ae60; color: white; font-weight: bold; cursor: pointer;">⏸️ Pause</button>
+            <label for="angleSlider"><strong>Adjust Angle:</strong></label>
+            <input type="range" id="angleSlider" class="slider" min="0" max="6.28" step="0.01" value="0">
+            <div class="angle-display" id="angleDisplay">0°</div>
+        </div>
+        
+        <div id="explanation" class="explanation">
+            <h3>Step 1: The Rotating Point</h3>
+            <p>Everything in trigonometry starts with a point moving around a circle. As this point rotates, it traces out different positions. Each position can be described by an angle θ (theta) measured from the positive x-axis.</p>
+            <p><strong>Move the slider above to see how the angle changes the point's position!</strong></p>
+        </div>
+        
+        <div class="memory-device" id="memoryDevice" style="display: none;">
+            🎵 <strong>Some Old Hippie Caught Another Hippie Tripping On Acid</strong> 🎵<br>
+            <small>The classic way to remember: SOH CAH TOA</small>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const angleSlider = document.getElementById('angleSlider');
+        const angleDisplay = document.getElementById('angleDisplay');
+        const explanation = document.getElementById('explanation');
+        const memoryDevice = document.getElementById('memoryDevice');
+        const playPauseBtn = document.getElementById('playPause');
+        const toggleTriangleNamesBtn = document.getElementById('toggleTriangleNames');
+        const toggleTrigFunctionsBtn = document.getElementById('toggleTrigFunctions');
+        const resetBtn = document.getElementById('resetBtn');
+        
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = 800 * ratio;
+        canvas.height = 600 * ratio;
+        ctx.scale(ratio, ratio);
+        canvas.style.width = '800px';
+        canvas.style.height = '600px';
+        
+        let currentStep = 1;
+        let angle = 0;
+        let animating = true;
+        let animationSpeed = 0.015;
+        
+        let showTriangleNames = false;
+        let showTrigFunctions = false;
+        
+        let centerX = 400;
+        let centerY = 300; 
+        let radius = 180;
+        
+        const stepContent = {
+            1: {
+                title: "Step 1: The Rotating Point",
+                content: "Everything in trigonometry starts with a point moving around a circle. Watch as this point rotates automatically, tracing out different positions with a beautiful trail effect. Each position can be described by an angle θ (theta) measured from the positive x-axis.<br><br><strong>Use the slider to manually control the angle, or just watch it rotate! (Auto-rotation resumes after 3 seconds of no interaction)</strong><br><br><em>🎯 Try the toggle buttons above to instantly reveal the hidden triangle and its labels!</em>"
+            },
+            2: {
+                title: "Step 2: Graph the Point",
+                content: "Here's the KEY insight that makes trigonometry make sense! Every point can be graphed with coordinates (x, y):<br><br>• The <span class='cos-color'><strong>blue dot</strong></span> shows the X-coordinate (how far right/left)<br>• The <span class='sin-color'><strong>red dot</strong></span> shows the Y-coordinate (how far up/down)<br>• The dotted lines show how we 'project' the point onto each axis<br>• Watch how these coordinates change as the angle changes!<br>• Notice the faint triangle shadow - that's what's coming next!<br><br><strong>This is the secret:</strong> The coordinates themselves ARE the trigonometric functions! <span class='cos-color'>x = cos(θ)</span> and <span class='sin-color'>y = sin(θ)</span>. That's why trigonometry works - it's just graphing points on a circle!<br><br><em>🎯 Press the toggle buttons to see the full triangle with labels right now!</em>"
+            },
+            3: {
+                title: "Step 3: Draw the Triangle",
+                content: "Now we can see how the triangle emerges from the graphed point! The dotted lines show how we 'drop down' and 'across' to form the triangle:<br><br>• The triangle sides are literally the distances we measured when graphing<br>• <span class='cos-color'><strong>Horizontal side</strong></span> = x-coordinate = cos(θ)<br>• <span class='sin-color'><strong>Vertical side</strong></span> = y-coordinate = sin(θ)<br>• <span class='hyp-color'><strong>Diagonal side</strong></span> = radius = 1<br><br><strong>The triangle is just a visual way to see the coordinates!</strong> This is why trigonometry connects geometry to algebra."
+            },
+            4: {
+                title: "Step 4: Label the Sides",
+                content: "Every right triangle has three sides with special names. Use the toggle buttons above to explore:<br><br>• <strong>Triangle Names:</strong> Shows OPPOSITE, ADJACENT, HYPOTENUSE<br>• <strong>Trig Functions:</strong> Shows sin(θ), cos(θ), tan(θ)<br><br>Notice how:<br>• <span class='sin-color'><strong>Opposite</strong></span> = the side across from angle θ = <span class='sin-color'><strong>y-coordinate = sin(θ)</strong></span><br>• <span class='cos-color'><strong>Adjacent</strong></span> = the side next to angle θ = <span class='cos-color'><strong>x-coordinate = cos(θ)</strong></span><br>• <span class='hyp-color'><strong>Hypotenuse</strong></span> = the longest side = radius = 1<br><br>These names are <em>relative to the angle θ</em>!"
+            },
+            5: {
+                title: "Step 5: SOH CAH TOA in Action",
+                content: "Now you can see the trigonometric functions in action! The formula boxes show live calculations as the point rotates:<br><br>• <span class='sin-color'><strong>SOH: sin(θ) = Opposite ÷ Hypotenuse = y-coordinate</strong></span><br>• <span class='cos-color'><strong>CAH: cos(θ) = Adjacent ÷ Hypotenuse = x-coordinate</strong></span><br>• <span class='tan-color'><strong>TOA: tan(θ) = Opposite ÷ Adjacent = y ÷ x</strong></span><br><br>Key insight: Since our circle has radius = 1, these ratios ARE the actual coordinates! <strong>This is why graphing and trigonometry are the same thing!</strong>"
+            },
+            6: {
+                title: "Step 6: Pythagorean Theorem Connection",
+                content: "The Pythagorean theorem connects all three sides:<br><br><div class='math-formula'><span class='cos-color'>Adjacent²</span> + <span class='sin-color'>Opposite²</span> = <span class='hyp-color'>Hypotenuse²</span></div><br>Or in coordinate terms:<br><br><div class='math-formula'><span class='cos-color'>x²</span> + <span class='sin-color'>y²</span> = 1</div><br>And in trigonometry terms:<br><br><div class='math-formula'><span class='cos-color'>cos²(θ)</span> + <span class='sin-color'>sin²(θ)</span> = 1</div><br>This is one of the most important identities in mathematics! It says that every point on the unit circle satisfies this relationship."
+            },
+            7: {
+                title: "Step 7: The Complete Picture",
+                content: "Now you can see how everything connects! The rotating point creates coordinates, coordinates form triangles, triangles give us SOH CAH TOA, and the Pythagorean theorem ties it all together.<br><br><strong>Key insights:</strong><br>• Every point on the circle is (cos θ, sin θ)<br>• Graphing a point IS trigonometry!<br>• The triangle sides are literally the x,y coordinates<br>• This is why trigonometry appears everywhere in physics, engineering, and nature<br><br><em>You've just discovered the foundation of all trigonometry! 🎉</em>"
+            }
+        };
+        
+        function resetAll() {
+            currentStep = 1;
+            angle = 0;
+            animating = true;
+            showTriangleNames = false;
+            showTrigFunctions = false;
+            
+            angleSlider.value = 0;
+            
+            document.querySelectorAll('.step-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('step1').classList.add('active');
+            
+            updateToggleButton(toggleTriangleNamesBtn, false, 'Triangle Names');
+            updateToggleButton(toggleTrigFunctionsBtn, false, 'Trig Functions');
+            
+            updateAngleDisplay();
+            updateExplanation();
+            updatePlayPauseButton();
+        }
+        
+        function updateToggleButton(button, isOn, baseName) {
+            button.className = `toggle-btn ${isOn ? 'on' : 'off'}`;
+            button.textContent = `${baseName}: ${isOn ? 'ON' : 'OFF'}`;
+        }
+        
+        function updateAngleDisplay() {
+            const degrees = Math.round(angle * 180 / Math.PI);
+            angleDisplay.textContent = `${degrees}°`;
+        }
+        
+        function updateExplanation() {
+            const content = stepContent[currentStep];
+            explanation.innerHTML = `<h3>${content.title}</h3><p>${content.content}</p>`;
+            memoryDevice.style.display = currentStep === 5 ? 'block' : 'none';
+        }
+        
+        function drawGrid() {
+            ctx.strokeStyle = '#f8f9fa';
+            ctx.lineWidth = 1;
+            
+            for (let x = 150; x <= 650; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 50);
+                ctx.lineTo(x, 550);
+                ctx.stroke();
+            }
+            
+            for (let y = 50; y <= 550; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(150, y);
+                ctx.lineTo(650, y);
+                ctx.stroke();
+            }
+        }
+        
+        function drawAxes() {
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+            
+            ctx.beginPath();
+            ctx.moveTo(150, centerY);
+            ctx.lineTo(650, centerY);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, 100);
+            ctx.lineTo(centerX, 500);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.beginPath();
+            ctx.moveTo(640, centerY);
+            ctx.lineTo(630, centerY - 8);
+            ctx.lineTo(630, centerY + 8);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, 110);
+            ctx.lineTo(centerX - 8, 120);
+            ctx.lineTo(centerX + 8, 120);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('X-axis', 670, centerY + 25);
+            ctx.fillText('Y-axis', centerX - 25, 90);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('(0,0)', centerX - 20, centerY + 20);
+            
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+            ctx.fillStyle = '#e67e22';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            
+            const xValues = [-1, -0.5, 0.5, 1];
+            const xLabels = ['-1', '-½', '½', '1'];
+            const outside = 20;
+            
+            for (let i = 0; i < xValues.length; i++) {
+                const tickX = centerX + xValues[i] * radius;
+                ctx.strokeStyle = '#2c3e50';
+                ctx.beginPath();
+                ctx.moveTo(tickX, centerY - 10);
+                ctx.lineTo(tickX, centerY + 10);
+                ctx.stroke();
+                const labelY = centerY + radius + outside;
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.strokeText(xLabels[i], tickX, labelY);
+                ctx.fillStyle = '#e67e22';
+                ctx.fillText(xLabels[i], tickX, labelY);
+            }
+            
+            const yValues = [-1, -0.5, 0.5, 1];
+            const yLabels = ['-1', '-½', '½', '1'];
+            
+            ctx.textAlign = 'right';
+            for (let i = 0; i < yValues.length; i++) {
+                const tickY = centerY - yValues[i] * radius;
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(centerX - 10, tickY);
+                ctx.lineTo(centerX + 10, tickY);
+                ctx.stroke();
+                const labelX = centerX - radius - outside;
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.strokeText(yLabels[i], labelX, tickY + 6);
+                ctx.fillStyle = '#e67e22';
+                ctx.fillText(yLabels[i], labelX, tickY + 6);
+            }
+        }
+        
+        function drawCircle() {
+            ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 4]);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.strokeText('Unit Circle', centerX, centerY - radius - 30);
+            ctx.fillText('Unit Circle', centerX, centerY - radius - 30);
+            
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = '#e67e22';
+            const radiusLabelX = centerX + radius * 0.5;
+            const radiusLabelY = centerY - 10;
+            ctx.strokeText('r = 1', radiusLabelX, radiusLabelY);
+            ctx.fillText('r = 1', radiusLabelX, radiusLabelY);
+            
+            ctx.strokeStyle = '#e67e22';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 3]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + radius, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = '#e67e22';
+            ctx.beginPath();
+            ctx.arc(centerX + radius, centerY, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            if (currentStep >= 4) {
+                ctx.fillStyle = 'rgba(39, 174, 96, 0.15)';
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius * 0.3, 0, -angle, true);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+        
+        function drawRotatingPoint() {
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY - radius * Math.sin(angle);
+            
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.3)';
+            for (let i = 0; i < 20; i++) {
+                const trailAngle = angle - i * 0.05;
+                const trailX = centerX + radius * Math.cos(trailAngle);
+                const trailY = centerY - radius * Math.sin(trailAngle);
+                const trailSize = 8 - i * 0.3;
+                
+                ctx.beginPath();
+                ctx.arc(trailX, trailY, trailSize, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(x, y, 12, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            
+            return { x, y };
+        }
+        
+        function drawCoordinateGraphing(point) {
+            if (currentStep < 2) return;
+            const { x, y } = point;
+            if (currentStep >= 2) {
+                ctx.strokeStyle = currentStep === 2 ? '#f39c12' : '#95a5a6';
+                ctx.lineWidth = currentStep === 2 ? 3 : 2;
+                ctx.setLineDash([8, 4]);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x, centerY);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(centerX, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                if (currentStep === 2) {
+                    ctx.fillStyle = '#f39c12';
+                    ctx.beginPath();
+                    ctx.moveTo(x, centerY - 15);
+                    ctx.lineTo(x - 5, centerY - 25);
+                    ctx.lineTo(x + 5, centerY - 25);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + 15, y);
+                    ctx.lineTo(centerX + 25, y - 5);
+                    ctx.lineTo(centerX + 25, y + 5);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            const markerSize = currentStep === 2 ? 10 : 8;
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(centerX, y, markerSize, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#3498db';
+            ctx.beginPath();
+            ctx.arc(x, centerY, markerSize, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            const xCoord = ((x - centerX) / radius).toFixed(2);
+            const yCoord = ((centerY - y) / radius).toFixed(2);
+            ctx.fillStyle = '#3498db';
+            ctx.textAlign = 'center';
+            ctx.strokeText(`x = ${xCoord}`, x, centerY + 30);
+            ctx.fillText(`x = ${xCoord}`, x, centerY + 30);
+            if (currentStep >= 4) {
+                ctx.strokeText(`cos(θ) = ${xCoord}`, x, centerY + 50);
+                ctx.fillText(`cos(θ) = ${xCoord}`, x, centerY + 50);
+            }
+            ctx.fillStyle = '#e74c3c';
+            ctx.textAlign = 'right';
+            ctx.strokeText(`y = ${yCoord}`, centerX - 15, y + 5);
+            ctx.fillText(`y = ${yCoord}`, centerX - 15, y + 5);
+            if (currentStep >= 4) {
+                ctx.strokeText(`sin(θ) = ${yCoord}`, centerX - 15, y + 25);
+                ctx.fillText(`sin(θ) = ${yCoord}`, centerX - 15, y + 25);
+            }
+            if (currentStep >= 2) {
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.strokeText(`(${xCoord}, ${yCoord})`, x + 20, y - 15);
+                ctx.fillText(`(${xCoord}, ${yCoord})`, x + 20, y - 15);
+                if (currentStep === 2) {
+                    ctx.fillStyle = '#f39c12';
+                    ctx.font = 'bold 18px Arial';
+                    ctx.strokeText('GRAPHING THE POINT!', centerX, 50);
+                    ctx.fillText('GRAPHING THE POINT!', centerX, 50);
+                }
+            }
+        }
+        
+        function drawTriangle(point) {
+            const { x, y } = point;
+            const forceShow = showTriangleNames || showTrigFunctions;
+            if (!forceShow && currentStep < 3) {
+                if (currentStep === 2) {
+                    ctx.fillStyle = 'rgba(52, 152, 219, 0.05)';
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(x, centerY);
+                    ctx.lineTo(x, y);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(52, 152, 219, 0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(x, centerY);
+                    ctx.lineTo(x, y);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                return;
+            }
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.2)';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x, centerY);
+            ctx.lineTo(x, y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.moveTo(x, centerY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.strokeStyle = '#3498db';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x, centerY);
+            ctx.stroke();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            const c = 25;
+            ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - c, centerY);
+            ctx.lineTo(x - c, centerY - c);
+            ctx.lineTo(x, centerY - c);
+            ctx.stroke();
+        }
+        
+        function drawLabels(point) {
+            const { x, y } = point;
+            const triangleVisible = showTriangleNames || showTrigFunctions || currentStep >= 4;
+            if (!triangleVisible) return;
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            if (showTriangleNames || (currentStep >= 4 && !showTrigFunctions)) {
+                const oppMidY = (centerY + y) / 2;
+                const oppLabelX = x + (x > centerX ? 45 : -45);
+                ctx.fillStyle = '#e74c3c';
+                ctx.save();
+                ctx.translate(oppLabelX, oppMidY);
+                ctx.rotate(-Math.PI / 2);
+                ctx.strokeText('OPPOSITE', 0, 0);
+                ctx.fillText('OPPOSITE', 0, 0);
+                ctx.restore();
+                const adjMidX = (centerX + x) / 2;
+                const adjLabelY = centerY + (y < centerY ? -35 : 45);
+                ctx.fillStyle = '#3498db';
+                ctx.strokeText('ADJACENT', adjMidX, adjLabelY);
+                ctx.fillText('ADJACENT', adjMidX, adjLabelY);
+                let hypMidX = (centerX + x) / 2;
+                let hypMidY = (centerY + y) / 2;
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 12px Arial';
+                let hypAngle = Math.atan2(y - centerY, x - centerX);
+                let textAngle = hypAngle;
+                if (hypAngle > Math.PI/2 || hypAngle < -Math.PI/2) {
+                    textAngle = hypAngle + Math.PI;
+                }
+                const offsetDistance = 30;
+                const labelX = hypMidX + offsetDistance * Math.cos(hypAngle + Math.PI/2);
+                const labelY = hypMidY + offsetDistance * Math.sin(hypAngle + Math.PI/2);
+                ctx.save();
+                ctx.translate(labelX, labelY);
+                ctx.rotate(textAngle);
+                ctx.strokeText('HYPOTENUSE', 0, 0);
+                ctx.fillText('HYPOTENUSE', 0, 0);
+                ctx.restore();
+            }
+            if (showTrigFunctions || (currentStep >= 5 && !showTriangleNames)) {
+                ctx.font = 'bold 16px Arial';
+                const sinMidY = (centerY + y) / 2;
+                const sinLabelX = x + (x > centerX ? 60 : -60);
+                ctx.fillStyle = '#e74c3c';
+                ctx.save();
+                ctx.translate(sinLabelX, sinMidY);
+                ctx.rotate(-Math.PI / 2);
+                ctx.strokeText('sin(θ)', 0, 0);
+                ctx.fillText('sin(θ)', 0, 0);
+                ctx.restore();
+                const cosMidX = (centerX + x) / 2;
+                const cosLabelY = centerY + (y < centerY ? -45 : 55);
+                ctx.fillStyle = '#3498db';
+                ctx.strokeText('cos(θ)', cosMidX, cosLabelY);
+                ctx.fillText('cos(θ)', cosMidX, cosLabelY);
+            }
+        }
+        
+        function drawAngleArc() {
+            if (currentStep < 4) return;
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 40, 0, -angle, true);
+            ctx.stroke();
+            ctx.fillStyle = '#27ae60';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            const angleLabelDistance = 55;
+            const angleLabelX = centerX + angleLabelDistance * Math.cos(-angle / 2);
+            const angleLabelY = centerY + angleLabelDistance * Math.sin(-angle / 2);
+            ctx.strokeText('θ', angleLabelX, angleLabelY);
+            ctx.fillText('θ', angleLabelX, angleLabelY);
+        }
+        
+        function drawSOHCAHTOA(point) {
+            if (currentStep < 5) return;
+            const { x, y } = point;
+            const opposite = Math.abs(centerY - y);
+            const adjacent = Math.abs(x - centerX);
+            const hypotenuse = radius;
+            const sinValue = (opposite / hypotenuse).toFixed(3);
+            const cosValue = (adjacent / hypotenuse).toFixed(3);
+            const tanValue = (opposite / adjacent).toFixed(3);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 2;
+            ctx.fillRect(30, 20, 280, 120);
+            ctx.strokeRect(30, 20, 280, 120);
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('SOH CAH TOA:', 40, 40);
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText(`SOH: sin(${Math.round(angle * 180 / Math.PI)}°) = ${sinValue}`, 40, 60);
+            ctx.fillStyle = '#3498db';
+            ctx.fillText(`CAH: cos(${Math.round(angle * 180 / Math.PI)}°) = ${cosValue}`, 40, 80);
+            ctx.fillStyle = '#f39c12';
+            ctx.fillText(`TOA: tan(${Math.round(angle * 180 / Math.PI)}°) = ${tanValue}`, 40, 100);
+            ctx.fillStyle = '#666';
+            ctx.font = '10px Arial';
+            ctx.fillText('Some Old Hippie Caught Another Hippie...', 40, 125);
+        }
+        
+        function drawPythagorean(point) {
+            if (currentStep < 6) return;
+            const { x, y } = point;
+            const opposite = Math.abs(centerY - y);
+            const adjacent = Math.abs(x - centerX);
+            const hypotenuse = radius;
+            const oppSquared = Math.round(opposite * opposite);
+            const adjSquared = Math.round(adjacent * adjacent);
+            const hypSquared = Math.round(hypotenuse * hypotenuse);
+            ctx.fillStyle = 'rgba(255, 248, 220, 0.95)';
+            ctx.strokeStyle = '#f39c12';
+            ctx.lineWidth = 2;
+            ctx.fillRect(490, 20, 280, 100);
+            ctx.strokeRect(490, 20, 280, 100);
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Pythagorean Theorem:', 500, 40);
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(`${adjSquared} + ${oppSquared} = ${hypSquared}`, 500, 60);
+            ctx.fillText('Adjacent² + Opposite² = Hyp²', 500, 80);
+            ctx.fillText('cos²(θ) + sin²(θ) = 1', 500, 100);
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, 800, 600);
+            drawGrid();
+            drawAxes();
+            drawCircle();
+            const point = drawRotatingPoint();
+            drawCoordinateGraphing(point);
+            drawTriangle(point);
+            drawAngleArc();
+            drawLabels(point);
+            drawSOHCAHTOA(point);
+            drawPythagorean(point);
+            if (animating) {
+                angle += animationSpeed;
+                if (angle > 2 * Math.PI) angle = 0;
+                angleSlider.value = angle;
+                updateAngleDisplay();
+            }
+            requestAnimationFrame(animate);
+        }
+        
+        function updatePlayPauseButton() {
+            playPauseBtn.textContent = animating ? '⏸️ Pause' : '▶️ Play';
+            playPauseBtn.style.background = animating ? '#e74c3c' : '#27ae60';
+        }
+        
+        let animationRestartTimeout;
+        playPauseBtn.addEventListener('click', function() {
+            animating = !animating;
+            updatePlayPauseButton();
+            clearTimeout(animationRestartTimeout);
+        });
+        
+        angleSlider.addEventListener('input', function() {
+            angle = parseFloat(this.value);
+            updateAngleDisplay();
+            animating = false;
+            updatePlayPauseButton();
+            clearTimeout(animationRestartTimeout);
+            animationRestartTimeout = setTimeout(() => {
+                animating = true;
+                updatePlayPauseButton();
+            }, 3000);
+        });
+        
+        for (let i = 1; i <= 7; i++) {
+            document.getElementById(`step${i}`).addEventListener('click', function() {
+                document.querySelectorAll('.step-btn').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                currentStep = i;
+                updateExplanation();
+            });
+        }
+        
+        toggleTriangleNamesBtn.addEventListener('click', function() {
+            showTriangleNames = !showTriangleNames;
+            updateToggleButton(this, showTriangleNames, 'Triangle Names');
+        });
+        
+        toggleTrigFunctionsBtn.addEventListener('click', function() {
+            showTrigFunctions = !showTrigFunctions;
+            updateToggleButton(this, showTrigFunctions, 'Trig Functions');
+        });
+        
+        resetBtn.addEventListener('click', resetAll);
+        
+        updateAngleDisplay();
+        updateExplanation();
+        updatePlayPauseButton();
+        updateToggleButton(toggleTriangleNamesBtn, false, 'Triangle Names');
+        updateToggleButton(toggleTrigFunctionsBtn, false, 'Trig Functions');
+        
+        animate();
+    </script>
+</body>
+</html>
